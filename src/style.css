@@ -1,0 +1,23 @@
+/* General Icon Button Styles */
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-button svg {
+  width: 24px;
+  height: 24px;
+  fill: white;
+}
+
+/* Seek and Volume Bar Styles */
+.seek-bar,
+.volume-bar {
+  flex-grow: 1;
+  margin: 0 10px;
+}
