@@ -68,18 +68,18 @@ onMounted(() => {
 
     recognition.onstart = () => {
       isListening.value = true;
-      console.log('Voice recognition started.');
+      console.log('Voice recognition started (onstart fired).');
     };
 
     recognition.onend = () => {
-      // Only restart if listening was not intentionally stopped by the user.
+      console.log(`Voice recognition ended (onend fired). isListening state: ${isListening.value}`);
       if (isListening.value) {
         console.log('Voice recognition service ended, restarting...');
         try {
           recognition.start();
         } catch (error) {
           console.error('Failed to restart recognition:', error);
-          isListening.value = false; // Update state if restart fails
+          isListening.value = false;
         }
       } else {
         console.log('Voice recognition stopped intentionally.');
@@ -87,13 +87,15 @@ onMounted(() => {
     };
 
     recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      isListening.value = false; // Reset state on error
+      console.error(`Speech recognition error (onerror fired). Error: ${event.error}`, event);
+      isListening.value = false;
     };
 
     recognition.onresult = (event) => {
+      console.log(`onresult fired. Results length: ${event.results.length}`);
       let final_transcript = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
+        console.log(`Result ${i}: isFinal = ${event.results[i].isFinal}, Transcript = '${event.results[i][0].transcript}'`);
         if (event.results[i].isFinal) {
           final_transcript += event.results[i][0].transcript;
         }
@@ -102,6 +104,8 @@ onMounted(() => {
       if (command) {
         console.log('Final command received:', command);
         handleVoiceCommand(command);
+      } else {
+        console.log('No final command processed from this result.');
       }
     };
   } else {
@@ -186,7 +190,7 @@ const toggleFullscreen = () => {
         @toggleFullscreen="toggleFullscreen" />
     </div>
     <button @click="toggleVoiceRecognition" class="voice-btn">
-      {{ isListening ? '🎙️ Dinleme Durduruldu' : '🎙️ Sesli Komutu Başlat' }}
+      {{ isListening ? '🎙️ Sesli Komutu Bitir' : '🎙️ Sesli Komutu Başlat' }}
     </button>
     <div v-if="isListening" class="voice-commands">
       <h4>Kullanılabilir Sesli Komutlar</h4>
