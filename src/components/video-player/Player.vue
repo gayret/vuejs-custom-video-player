@@ -1,6 +1,6 @@
 <script setup>
 import Controls from './Controls.vue'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   videoUrl: {
@@ -15,6 +15,8 @@ const currentTime = ref(0)
 const duration = ref(0)
 const volume = ref(1)
 const isMuted = ref(false)
+const isListening = ref(false)
+let recognition = null
 
 onMounted(() => {
   if (videoElement.value) {
@@ -55,7 +57,83 @@ onMounted(() => {
       setInitialValues()
     }
   }
+
+  // Web Speech API for voice commands
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+  if (SpeechRecognition) {
+    recognition = new SpeechRecognition()
+    recognition.continuous = true
+    recognition.lang = 'tr-TR'
+    recognition.interimResults = false
+
+    recognition.onstart = () => {
+      isListening.value = true
+      console.log('Voice recognition started.')
+    }
+
+    recognition.onend = () => {
+      isListening.value = false
+      console.log('Voice recognition ended. Restarting...')
+      // Restart recognition to keep it active
+      if (recognition) {
+        recognition.start()
+      }
+    }
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error)
+    }
+
+    recognition.onresult = (event) => {
+      const last = event.results.length - 1
+      const command = event.results[last][0].transcript.trim().toLowerCase()
+      console.log('Command received:', command)
+      handleVoiceCommand(command)
+    }
+
+    // Start listening
+    recognition.start()
+  } else {
+    console.warn('Web Speech API is not supported in this browser.')
+  }
 })
+
+onUnmounted(() => {
+  if (recognition) {
+    recognition.stop()
+    recognition = null
+  }
+})
+
+const handleVoiceCommand = (command) => {
+  const commandMap = {
+    'oynat': () => {
+      if (!isPlaying.value) videoElement.value.play()
+    },
+    'devam et': () => {
+      if (!isPlaying.value) videoElement.value.play()
+    },
+    'duraklat': () => {
+      if (isPlaying.value) videoElement.value.pause()
+    },
+    'başa sar': () => {
+      seek(0)
+    },
+    'ileri sar': () => {
+      seek(Math.min(duration.value, currentTime.value + 5))
+    },
+    'geri sar': () => {
+      seek(Math.max(0, currentTime.value - 5))
+    }
+  }
+
+  const action = commandMap[command]
+  if (action) {
+    action()
+  } else {
+    console.log('Unknown command:', command)
+  }
+}
 
 const togglePlayPause = () => {
   if (isPlaying.value) {
