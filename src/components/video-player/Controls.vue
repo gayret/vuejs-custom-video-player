@@ -66,10 +66,6 @@ const voiceCommands = [
         </button>
       </div>
     </div>
-    <div class="voice-commands">
-      <strong>Kullanılabilir sesli komutlar:</strong>
-      <span>{{ voiceCommands.join(', ') }}</span>
-    </div>
   </div>
 </template>
 
@@ -126,18 +122,5 @@ const voiceCommands = [
 .time-display {
   font-family: monospace;
   font-size: 14px;
-}
-
-.voice-commands {
-  background-color: rgba(0, 0, 0, 0.7);
-  padding: 8px 12px;
-  font-size: 12px;
-  text-align: center;
-  border-bottom-left-radius: 5px;
-  border-bottom-right-radius: 5px;
-}
-
-.voice-commands strong {
-  margin-right: 8px;
 }
 </style>

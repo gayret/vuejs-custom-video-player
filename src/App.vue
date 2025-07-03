@@ -23,5 +23,6 @@ a {
 footer {
   margin-top: 3rem;
   color: #666;
+  text-align: center;
 }
 </style>
