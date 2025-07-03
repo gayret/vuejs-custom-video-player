@@ -110,9 +110,6 @@ const handleVoiceCommand = (command) => {
     'oynat': () => {
       if (!isPlaying.value) videoElement.value.play()
     },
-    'devam et': () => {
-      if (!isPlaying.value) videoElement.value.play()
-    },
     'duraklat': () => {
       if (isPlaying.value) videoElement.value.pause()
     },
@@ -128,6 +125,7 @@ const handleVoiceCommand = (command) => {
   }
 
   const action = commandMap[command]
+
   if (action) {
     action()
   } else {
