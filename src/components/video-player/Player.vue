@@ -20,166 +20,157 @@ let recognition = null
 
 const toggleVoiceRecognition = () => {
   if (!recognition) {
-    console.error('Speech Recognition is not available.')
-    return
+    console.error('Speech Recognition is not available.');
+    return;
   }
   if (isListening.value) {
-    recognition.stop()
+    isListening.value = false; // Signal intentional stop
+    recognition.stop();
   } else {
     try {
-      recognition.start()
+      recognition.start();
     } catch (error) {
-      console.error('Could not start voice recognition:', error)
+      console.error('Could not start voice recognition:', error);
     }
   }
-}
+};
 
 onMounted(() => {
   if (videoElement.value) {
-    // Set initial values
     const setInitialValues = () => {
-      duration.value = videoElement.value.duration
-      volume.value = videoElement.value.volume
-      isMuted.value = videoElement.value.muted
-    }
+      duration.value = videoElement.value.duration;
+      volume.value = videoElement.value.volume;
+      isMuted.value = videoElement.value.muted;
+    };
 
-    // Add event listeners
-    videoElement.value.addEventListener('loadedmetadata', setInitialValues)
-    videoElement.value.addEventListener('durationchange', setInitialValues) // Handle case where duration changes
-
-    videoElement.value.addEventListener('timeupdate', () => {
-      currentTime.value = videoElement.value.currentTime
-    })
-
-    videoElement.value.addEventListener('play', () => {
-      isPlaying.value = true
-    })
-
-    videoElement.value.addEventListener('pause', () => {
-      isPlaying.value = false
-    })
-
-    videoElement.value.addEventListener('ended', () => {
-      isPlaying.value = false
-    })
-
+    videoElement.value.addEventListener('loadedmetadata', setInitialValues);
+    videoElement.value.addEventListener('durationchange', setInitialValues);
+    videoElement.value.addEventListener('timeupdate', () => { currentTime.value = videoElement.value.currentTime; });
+    videoElement.value.addEventListener('play', () => { isPlaying.value = true; });
+    videoElement.value.addEventListener('pause', () => { isPlaying.value = false; });
+    videoElement.value.addEventListener('ended', () => { isPlaying.value = false; });
     videoElement.value.addEventListener('volumechange', () => {
-      volume.value = videoElement.value.volume
-      isMuted.value = videoElement.value.muted
-    })
+      volume.value = videoElement.value.volume;
+      isMuted.value = videoElement.value.muted;
+    });
 
-    // If metadata is already loaded
     if (videoElement.value.readyState >= 1) {
-      setInitialValues()
+      setInitialValues();
     }
   }
 
-  // Web Speech API for voice commands
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (SpeechRecognition) {
-    recognition = new SpeechRecognition()
-    recognition.continuous = true
-    recognition.lang = 'tr-TR'
-    recognition.interimResults = false
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.lang = 'tr-TR';
+    recognition.interimResults = false;
 
     recognition.onstart = () => {
-      isListening.value = true
-      console.log('Voice recognition started.')
-    }
+      isListening.value = true;
+      console.log('Voice recognition started.');
+    };
 
     recognition.onend = () => {
-      isListening.value = false
-      console.log('Voice recognition ended.')
-    }
+      // Only restart if listening was not intentionally stopped by the user.
+      if (isListening.value) {
+        console.log('Voice recognition service ended, restarting...');
+        try {
+          recognition.start();
+        } catch (error) {
+          console.error('Failed to restart recognition:', error);
+          isListening.value = false; // Update state if restart fails
+        }
+      } else {
+        console.log('Voice recognition stopped intentionally.');
+      }
+    };
 
     recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error)
-      isListening.value = false // Ensure listening state is reset on error
-    }
+      console.error('Speech recognition error:', event.error);
+      isListening.value = false; // Reset state on error
+    };
 
     recognition.onresult = (event) => {
-      const last = event.results.length - 1
-      const command = event.results[last][0].transcript.trim().toLowerCase()
-      console.log('Command received:', command)
-      handleVoiceCommand(command)
-    }
+      let final_transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          final_transcript += event.results[i][0].transcript;
+        }
+      }
+      const command = final_transcript.trim().toLowerCase();
+      if (command) {
+        console.log('Final command received:', command);
+        handleVoiceCommand(command);
+      }
+    };
   } else {
-    console.warn('Web Speech API is not supported in this browser.')
+    console.warn('Web Speech API is not supported in this browser.');
   }
-})
+});
 
 onUnmounted(() => {
   if (recognition) {
-    recognition.stop()
-    recognition = null
+    isListening.value = false;
+    recognition.stop();
+    recognition = null;
   }
-})
+});
 
 const handleVoiceCommand = (command) => {
   const commandMap = {
-    'oynat': () => {
-      if (!isPlaying.value) videoElement.value.play()
-    },
-    'duraklat': () => {
-      if (isPlaying.value) videoElement.value.pause()
-    },
-    'başa sar': () => {
-      seek(0)
-    },
-    'ileri sar': () => {
-      seek(Math.min(duration.value, currentTime.value + 5))
-    },
-    'geri sar': () => {
-      seek(Math.max(0, currentTime.value - 5))
-    }
-  }
+    'oynat': () => { if (!isPlaying.value) videoElement.value.play(); },
+    'duraklat': () => { if (isPlaying.value) videoElement.value.pause(); },
+    'başa sar': () => { seek(0); },
+    'ileri sar': () => { seek(Math.min(duration.value, currentTime.value + 5)); },
+    'geri sar': () => { seek(Math.max(0, currentTime.value - 5)); },
+  };
 
-  const action = commandMap[command]
-
+  const action = commandMap[command];
   if (action) {
-    action()
+    action();
   } else {
-    console.log('Unknown command:', command)
+    console.log('Unknown command:', command);
   }
-}
+};
 
 const togglePlayPause = () => {
   if (isPlaying.value) {
-    videoElement.value.pause()
+    videoElement.value.pause();
   } else {
-    videoElement.value.play()
+    videoElement.value.play();
   }
-}
+};
 
 const seek = (time) => {
   if (videoElement.value) {
-    videoElement.value.currentTime = time
+    videoElement.value.currentTime = time;
   }
-}
+};
 
 const updateVolume = (newVolume) => {
   if (videoElement.value) {
-    videoElement.value.volume = newVolume
+    videoElement.value.volume = newVolume;
   }
-}
+};
 
 const toggleMute = () => {
   if (videoElement.value) {
-    videoElement.value.muted = !videoElement.value.muted
+    videoElement.value.muted = !videoElement.value.muted;
   }
-}
+};
 
 const toggleFullscreen = () => {
   if (videoElement.value.requestFullscreen) {
-    videoElement.value.requestFullscreen()
+    videoElement.value.requestFullscreen();
   } else if (videoElement.value.mozRequestFullScreen) { /* Firefox */
-    videoElement.value.mozRequestFullScreen()
+    videoElement.value.mozRequestFullScreen();
   } else if (videoElement.value.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
-    videoElement.value.webkitRequestFullscreen()
+    videoElement.value.webkitRequestFullscreen();
   } else if (videoElement.value.msRequestFullscreen) { /* IE/Edge */
-    videoElement.value.msRequestFullscreen()
+    videoElement.value.msRequestFullscreen();
   }
-}
+};
 
 </script>
 
@@ -190,12 +181,12 @@ const toggleFullscreen = () => {
         <source :src="props.videoUrl" type="video/mp4">
       </video>
 
-      <Controls :isPlaying="isPlaying" :currentTime="currentTime" :duration="duration" :volume="volume"
-        :isMuted="isMuted" @togglePlayPause="togglePlayPause" @seek="seek" @updateVolume="updateVolume"
-        @toggleMute="toggleMute" @toggleFullscreen="toggleFullscreen" />
+      <Controls :isPlaying="isPlaying" :currentTime="currentTime" :duration="duration" :volume="volume" :isMuted="isMuted"
+        @togglePlayPause="togglePlayPause" @seek="seek" @updateVolume="updateVolume" @toggleMute="toggleMute"
+        @toggleFullscreen="toggleFullscreen" />
     </div>
     <button @click="toggleVoiceRecognition" class="voice-btn">
-      {{ isListening ? '🎙️ Sesli Komutu Bitir' : '🎙️ Sesli Komutu Başlat' }}
+      {{ isListening ? '🎙️ Dinleme Durduruldu' : '🎙️ Sesli Komutu Başlat' }}
     </button>
     <div v-if="isListening" class="voice-commands">
       <h4>Kullanılabilir Sesli Komutlar</h4>
@@ -220,8 +211,7 @@ const toggleFullscreen = () => {
 .video-player {
   position: relative;
   width: 100%;
-  padding-top: 56.25%;
-  /* 16:9 Aspect Ratio */
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
   background-color: black;
 }
 
